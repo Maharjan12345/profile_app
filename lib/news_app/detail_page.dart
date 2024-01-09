@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:profile_app/news_app/information_page.dart';
+import 'package:profile_app/widgets/custom_button.dart';
 
 class DetailPage extends StatefulWidget {
   const DetailPage({super.key, required this.title, required this.description});
@@ -36,6 +37,10 @@ class _DetailPageState extends State<DetailPage> {
               );
             },
             child: Text("Next Page"),
+          ),
+          CustomBlueButton(
+            textData: '',
+            onPressed: () {},
           ),
         ],
       ),

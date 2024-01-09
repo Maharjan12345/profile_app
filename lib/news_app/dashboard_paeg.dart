@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:profile_app/news_app/detail_page.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -9,10 +12,27 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  final ImagePicker picker = ImagePicker();
   final List<String> imageList = [
     "assets/images/profile_pic_1.jpg",
     "assets/images/profile_pic.jpg"
   ];
+
+  XFile? image;
+  bool isImageLoading = false;
+
+  Future<void> _onImageButtonPress() async {
+    setState(() {
+      isImageLoading = true;
+    });
+    await picker.pickImage(source: ImageSource.camera).then((value) {
+      setState(() {
+        image = value;
+        isImageLoading = false;
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -40,143 +60,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
         body: TabBarView(
           children: [
             // -------- First Tab  --------------
-            Padding(
-              padding: const EdgeInsets.only(top: 18.0),
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: 20,
-                itemBuilder: (BuildContext context, int index) {
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 20),
-                    margin: const EdgeInsets.symmetric(horizontal: 20),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          offset: const Offset(0, 2),
-                          blurRadius: 4,
-                          spreadRadius: 7,
-                          color: Colors.black.withOpacity(0.07),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          height: 160,
-                          width: double.infinity,
-                          color: Colors.red,
-                          child: Image.asset(
-                            imageList[0],
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          "Heading section",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          "This is description of the app. This is description of the app. ",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            TextButton(
-                              onPressed: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (BuildContext context) {
-                                    return const AlertDialog(
-                                      content: Text(
-                                          "This is description of the app. This is description of the app./n This is description of the app. This is description of the app. This is description of the app. This is description of the app."),
-                                    );
-                                  },
-                                );
-                              },
-                              child: const Text("Read More"),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                // Navigator.of(context).push(
-                                //   MaterialPageRoute(
-                                //     builder: (context) => DetailPage(),
-                                //     settings: RouteSettings(
-                                //       arguments: {}
-                                //     )
-                                //   ),
-                                // );
-                                //--- passing data with constructor -----
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (context) => RecommendtaionPage(
-                                      title: "Detail",
-                                      description: "This is description",
-                                    ),
-                                  ),
-                                );
-                                // ---- named routed with arguments -----
-                                Navigator.of(context).pushNamed(
-                                  "/detailPage",
-                                  arguments: [
-                                    "name",
-                                    "info",
-                                    "address",
-                                  ],
-                                );
-                              },
-                              child: const Text("Next Page"),
-                            ),
-                            IconButton(
-                              onPressed: () {
-                                showModalBottomSheet(
-                                  context: context,
-                                  builder: (BuildContext context) {
-                                    return ListView(
-                                      shrinkWrap: true,
-                                      children: const [
-                                        ListTile(
-                                          title: Text("Email"),
-                                          leading: Icon(Icons.email),
-                                        ),
-                                        ListTile(
-                                          title: Text("Call"),
-                                          leading: Icon(Icons.phone),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
-                              },
-                              icon: const Icon(Icons.share),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                separatorBuilder: (BuildContext context, int index) =>
-                    const SizedBox(height: 30),
-              ),
-            ),
+            FirstTabView(imageList: imageList),
             // -------- Second Tab  --------------
             PageView.builder(
               itemCount: imageList.length,
               itemBuilder: (BuildContext context, int index) {
-                return Image.asset(imageList[index]);
+                return InkWell(
+                  onTap: () {
+                    _onImageButtonPress();
+                  },
+                  child: Column(
+                    children: [
+                      if (!isImageLoading)
+                        const CircularProgressIndicator.adaptive(),
+                      if (image?.path != null)
+                        SizedBox(
+                          height: 200,
+                          child: Image.file(
+                            File(image!.path),
+                          ),
+                        ),
+                      SizedBox(
+                        height: 200,
+                        child: Image.asset(
+                          imageList[index],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
               },
             ),
             // -------- Third Tab  --------------
@@ -319,6 +231,150 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class FirstTabView extends StatelessWidget {
+  const FirstTabView({
+    super.key,
+    required this.imageList,
+  });
+
+  final List<String> imageList;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 18.0),
+      child: ListView.separated(
+        shrinkWrap: true,
+        itemCount: 20,
+        itemBuilder: (BuildContext context, int index) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  offset: const Offset(0, 2),
+                  blurRadius: 4,
+                  spreadRadius: 7,
+                  color: Colors.black.withOpacity(0.07),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  height: 160,
+                  width: double.infinity,
+                  color: Colors.red,
+                  child: Image.asset(
+                    imageList[0],
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  "Heading section",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  "This is description of the app. This is description of the app. ",
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return const AlertDialog(
+                              content: Text(
+                                  "This is description of the app. This is description of the app./n This is description of the app. This is description of the app. This is description of the app. This is description of the app."),
+                            );
+                          },
+                        );
+                      },
+                      child: const Text("Read More"),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        // Navigator.of(context).push(
+                        //   MaterialPageRoute(
+                        //     builder: (context) => DetailPage(),
+                        //     settings: RouteSettings(
+                        //       arguments: {}
+                        //     )
+                        //   ),
+                        // );
+                        //--- passing data with constructor -----
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => RecommendtaionPage(
+                              title: "Detail",
+                              description: "This is description",
+                            ),
+                          ),
+                        );
+                        // ---- named routed with arguments -----
+                        Navigator.of(context).pushNamed(
+                          "/detailPage",
+                          arguments: [
+                            "name",
+                            "info",
+                            "address",
+                          ],
+                        );
+                      },
+                      child: const Text("Next Page"),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return ListView(
+                              shrinkWrap: true,
+                              children: const [
+                                ListTile(
+                                  title: Text("Email"),
+                                  leading: Icon(Icons.email),
+                                ),
+                                ListTile(
+                                  title: Text("Call"),
+                                  leading: Icon(Icons.phone),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                      icon: const Icon(Icons.share),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+        separatorBuilder: (BuildContext context, int index) =>
+            const SizedBox(height: 30),
       ),
     );
   }

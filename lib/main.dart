@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:profile_app/news_app/dashboard_paeg.dart';
-import 'package:profile_app/news_app/detail_page.dart';
+import 'package:profile_app/news_app/login_page.dart';
+import 'package:profile_app/signup_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
       // routes: {
       //   "/detailPage": (context) => DetailPage(),
       // },
-      home: const DashboardScreen(),
+      home: const SignUpPage(),
     );
   }
 }
