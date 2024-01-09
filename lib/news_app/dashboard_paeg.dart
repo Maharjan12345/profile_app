@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:profile_app/news_app/detail_page.dart';
 
+import '../api/api_service.dart';
+import '../model/album_model.dart';
+
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -21,16 +24,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
   XFile? image;
   bool isImageLoading = false;
 
-  Future<void> _onImageButtonPress() async {
+  final _apiService = ApiService();
+
+  Album? album;
+
+  bool isApiLoading = false;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    loadAlbumData();
+  }
+
+  void loadAlbumData() async {
     setState(() {
-      isImageLoading = true;
+      isApiLoading = true;
     });
-    await picker.pickImage(source: ImageSource.camera).then((value) {
-      setState(() {
-        image = value;
-        isImageLoading = false;
-      });
+    final data = await _apiService.fetchAlbum();
+    album = data;
+    setState(() {
+      isApiLoading = false;
     });
+    print(album?.email);
   }
 
   @override
@@ -234,6 +250,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
+
+  Future<void> _onImageButtonPress() async {
+    setState(() {
+      isImageLoading = true;
+    });
+    await picker.pickImage(source: ImageSource.camera).then((value) {
+      setState(() {
+        image = value;
+        isImageLoading = false;
+      });
+    });
+  }
 }
 
 class FirstTabView extends StatelessWidget {
@@ -326,7 +354,7 @@ class FirstTabView extends StatelessWidget {
                         //--- passing data with constructor -----
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (context) => RecommendtaionPage(
+                            builder: (context) => const RecommendtaionPage(
                               title: "Detail",
                               description: "This is description",
                             ),

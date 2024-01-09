@@ -17,19 +17,27 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final height = MediaQuery.of(context).size.height;
+
     return Scaffold(
       body: Form(
         key: _formKey,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: ListView(
+          shrinkWrap: true,
           children: [
+            SizedBox(height: height * 0.1),
             const LogoTile(),
             const SizedBox(height: 20),
-            const Text(
-              "Welcome!!!",
-            ),
-            const Text(
-              "This is the best news app in the world.",
+            const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "Welcome!!!",
+                ),
+                Text(
+                  "This is the best news app in the world.",
+                ),
+              ],
             ),
             const SizedBox(height: 50),
             CustomFormField(
@@ -81,7 +89,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _signIn(BuildContext context) async {
     setState(() => isSignInLoading = true);
     if (_formKey.currentState!.validate()) {
-      await Future.delayed(Duration(seconds: 2));
+      await Future.delayed(const Duration(seconds: 2));
       setState(() => isSignInLoading = false);
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(
