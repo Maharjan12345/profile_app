@@ -135,8 +135,18 @@ class CustomFormField extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: TextFormField(
         controller: controller,
+        onTapOutside: (event) {
+          FocusManager.instance.primaryFocus?.unfocus();
+        },
         validator: validator,
         decoration: InputDecoration(
+          focusedErrorBorder: OutlineInputBorder(
+            borderSide: const BorderSide(
+              color: Colors.red,
+              width: 1.0,
+            ),
+            borderRadius: BorderRadius.circular(6.0),
+          ),
           labelText: hintText,
           errorBorder: const OutlineInputBorder(
             borderSide: BorderSide(width: 1, color: Colors.redAccent),
@@ -150,7 +160,7 @@ class CustomFormField extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderSide: const BorderSide(
-              color: Colors.blue,
+              color: Colors.grey,
               width: 1.0,
             ),
             borderRadius: BorderRadius.circular(6.0),

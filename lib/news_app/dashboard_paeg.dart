@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:profile_app/model/weather_model.dart';
 import 'package:profile_app/news_app/detail_page.dart';
 
 import '../api/api_service.dart';
@@ -26,27 +27,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   final _apiService = ApiService();
 
-  Album? album;
+  List<Album>? albumList;
+  WeatherModel? weatherModel;
 
   bool isApiLoading = false;
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     loadAlbumData();
+    fetchWeatherData();
   }
 
   void loadAlbumData() async {
     setState(() {
       isApiLoading = true;
     });
-    final data = await _apiService.fetchAlbum();
-    album = data;
+    final data = await _apiService.fetchAlbumList();
+    albumList = data;
     setState(() {
       isApiLoading = false;
     });
-    print(album?.email);
+  }
+
+  void fetchWeatherData() async {
+    setState(() {
+      isApiLoading = true;
+    });
+    final data = await _apiService.fetchWeatherData();
+    weatherModel = data;
+    setState(() {
+      isApiLoading = false;
+    });
   }
 
   @override
@@ -75,38 +87,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         body: TabBarView(
           children: [
-            // -------- First Tab  --------------
-            FirstTabView(imageList: imageList),
-            // -------- Second Tab  --------------
-            PageView.builder(
-              itemCount: imageList.length,
-              itemBuilder: (BuildContext context, int index) {
-                return InkWell(
-                  onTap: () {
-                    _onImageButtonPress();
-                  },
-                  child: Column(
-                    children: [
-                      if (!isImageLoading)
-                        const CircularProgressIndicator.adaptive(),
-                      if (image?.path != null)
-                        SizedBox(
-                          height: 200,
-                          child: Image.file(
-                            File(image!.path),
-                          ),
-                        ),
-                      SizedBox(
-                        height: 200,
-                        child: Image.asset(
-                          imageList[index],
-                        ),
-                      ),
-                    ],
+            isApiLoading
+                ? const Center(
+                    child: CircularProgressIndicator.adaptive(),
+                  )
+                : RefreshIndicator(
+                    onRefresh: () async => loadAlbumData(),
+                    child: FirstTabView(albumList: albumList),
                   ),
-                );
-              },
-            ),
+            SecondTabView(weatherModel: weatherModel),
+
             // -------- Third Tab  --------------
             Column(
               children: [
@@ -128,17 +118,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Center(
-                        child: SizedBox(
-                          height: 100,
-                          width: 100,
-                          child: ClipOval(
-                            child: Image.asset(
-                              "assets/images/profile_pic.jpg",
-                              fit: BoxFit.cover,
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Center(
+                            child: SizedBox(
+                              height: 150,
+                              width: 150,
+                              child: isImageLoading
+                                  ? const CircularProgressIndicator.adaptive()
+                                  : image?.path != null
+                                      ? SizedBox(
+                                          height: 200,
+                                          child: Image.file(
+                                            File(image!.path),
+                                          ),
+                                        )
+                                      : ClipOval(
+                                          child: Image.asset(
+                                            "assets/images/profile_pic.jpg",
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
                             ),
                           ),
-                        ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 140),
+                            child: ElevatedButton(
+                              onPressed: () => _onImageButtonPress(),
+                              child: const Icon(Icons.camera),
+                            ),
+                          )
+                        ],
                       ),
                       const Row(
                         children: [
@@ -205,39 +216,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ],
                       ),
                       ElevatedButton(
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text("Success"),
-                                        backgroundColor: Colors.green,
-                                      ),
-                                    );
-                                  },
-                                  child: const Text("Ok"),
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text("Error"),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
-                                  },
-                                  child: const Text("Cancel"),
-                                ),
-                              ],
-                              title: const Text("Alert box"),
-                              content: const Text("Are you sure ?"),
-                            ),
-                          );
-                        },
+                        onPressed: () => _onSubmitPress(context),
                         child: const Text("Submit"),
                       ),
                     ],
@@ -251,34 +230,104 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Future<dynamic> _onSubmitPress(BuildContext context) {
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        actions: [
+          TextButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Success"),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            child: const Text("Ok"),
+          ),
+          TextButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Error"),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            },
+            child: const Text("Cancel"),
+          ),
+        ],
+        title: const Text("Alert box"),
+        content: const Text("Are you sure ?"),
+      ),
+    );
+  }
+
   Future<void> _onImageButtonPress() async {
     setState(() {
       isImageLoading = true;
     });
-    await picker.pickImage(source: ImageSource.camera).then((value) {
-      setState(() {
-        image = value;
-        isImageLoading = false;
-      });
-    });
+    await picker.pickImage(source: ImageSource.camera).then(
+      (value) {
+        setState(() {
+          image = value;
+          isImageLoading = false;
+        });
+      },
+    );
+  }
+}
+
+class SecondTabView extends StatelessWidget {
+  const SecondTabView({
+    super.key,
+    required this.weatherModel,
+  });
+
+  // final List<String> imageList;
+  final WeatherModel? weatherModel;
+
+  @override
+  Widget build(BuildContext context) {
+    return PageView.builder(
+      itemCount: 20,
+      itemBuilder: (BuildContext context, int index) {
+        return InkWell(
+          onTap: () {},
+          child: Column(
+            children: [
+              Text("${weatherModel?.name}")
+              // SizedBox(
+              //   height: 200,
+              //   child: Image.asset(
+              //     imageList[index],
+              //   ),
+              // ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
 
 class FirstTabView extends StatelessWidget {
   const FirstTabView({
     super.key,
-    required this.imageList,
+    required this.albumList,
   });
 
-  final List<String> imageList;
+  // final List<String> imageList;
+  final List<Album>? albumList;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 18.0),
+      padding: const EdgeInsets.only(top: 18.0, bottom: 18),
       child: ListView.separated(
         shrinkWrap: true,
-        itemCount: 20,
+        itemCount: albumList == null ? 1 : albumList!.length,
         itemBuilder: (BuildContext context, int index) {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
@@ -301,9 +350,9 @@ class FirstTabView extends StatelessWidget {
                 Container(
                   height: 160,
                   width: double.infinity,
-                  color: Colors.red,
-                  child: Image.asset(
-                    imageList[0],
+                  color: Colors.grey.shade200,
+                  child: Image.network(
+                    "${albumList![index].avatar}",
                     fit: BoxFit.cover,
                   ),
                 ),
