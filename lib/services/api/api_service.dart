@@ -4,7 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:profile_app/model/weather_model.dart';
 
-import '../model/album_model.dart';
+import '../../model/album_model.dart';
 
 class ApiService {
   Future<Album> fetchAlbum() async {
@@ -40,6 +40,8 @@ class ApiService {
         Uri.parse(
             'https://api.openweathermap.org/data/2.5/weather?lat=$lat&lon=$lon&appid=20177d1fa45e56e2e1a58712faa338a7'),
       );
+
+      debugPrint("========");
 
       if (response.statusCode == 200) {
         debugPrint(response.body);

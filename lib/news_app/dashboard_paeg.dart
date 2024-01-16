@@ -5,8 +5,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:profile_app/model/weather_model.dart';
 import 'package:profile_app/news_app/detail_page.dart';
 
-import '../api/api_service.dart';
+import '../services/api/api_service.dart';
 import '../model/album_model.dart';
+import '../services/database/sqlite_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -31,13 +32,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   WeatherModel? weatherModel;
 
   bool isApiLoading = false;
+  final SqliteService _database = SqliteService();
 
   @override
   void initState() {
     super.initState();
     loadAlbumData();
     fetchWeatherData();
+    _database.initializeDB();
   }
+
+  List<NewsModel>? newList;
 
   void loadAlbumData() async {
     setState(() {
@@ -64,7 +69,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('News App'),
@@ -82,6 +87,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 text: "Profile",
                 icon: Icon(Icons.person),
               ),
+              Tab(
+                text: "Saved",
+                icon: Icon(Icons.book),
+              ),
             ],
           ),
         ),
@@ -93,7 +102,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   )
                 : RefreshIndicator(
                     onRefresh: () async => loadAlbumData(),
-                    child: FirstTabView(albumList: albumList),
+                    child: FirstTabView(
+                      albumList: albumList,
+                      database: _database,
+                    ),
                   ),
             SecondTabView(weatherModel: weatherModel),
 
@@ -224,6 +236,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ],
             ),
+
+            RefreshIndicator(
+              onRefresh: () async {
+                await _database.getItems();
+                setState(() {});
+              },
+              child: FutureBuilder(
+                future: _database.getItems(),
+                builder: (BuildContext context,
+                    AsyncSnapshot<List<NewsModel>> snapshot) {
+                  return ListView.builder(
+                    itemCount: snapshot.data?.length ?? 0,
+                    itemBuilder: (context, index) {
+                      final data = snapshot.data![index];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: CustomContainer(
+                          description: data.description,
+                          title: data.title,
+                          imageNetwork: data.image,
+                          bottomWidgets: [
+                            IconButton(
+                              onPressed: () {
+                                _database
+                                    .deleteItem("${snapshot.data![index].id}");
+                                setState(() {});
+                              },
+                              icon: const Icon(Icons.delete),
+                            )
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
           ],
         ),
       ),
@@ -316,10 +365,13 @@ class FirstTabView extends StatelessWidget {
   const FirstTabView({
     super.key,
     required this.albumList,
+    required this.database,
   });
 
   // final List<String> imageList;
   final List<Album>? albumList;
+
+  final SqliteService database;
 
   @override
   Widget build(BuildContext context) {
@@ -329,129 +381,157 @@ class FirstTabView extends StatelessWidget {
         shrinkWrap: true,
         itemCount: albumList == null ? 1 : albumList!.length,
         itemBuilder: (BuildContext context, int index) {
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  offset: const Offset(0, 2),
-                  blurRadius: 4,
-                  spreadRadius: 7,
-                  color: Colors.black.withOpacity(0.07),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  height: 160,
-                  width: double.infinity,
-                  color: Colors.grey.shade200,
-                  child: Image.network(
-                    "${albumList![index].avatar}",
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  "Heading section",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  "This is description of the app. This is description of the app. ",
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    TextButton(
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return const AlertDialog(
-                              content: Text(
-                                  "This is description of the app. This is description of the app./n This is description of the app. This is description of the app. This is description of the app. This is description of the app."),
-                            );
-                          },
-                        );
-                      },
-                      child: const Text("Read More"),
+          return CustomContainer(
+            imageNetwork: "${albumList?[index].avatar}",
+            title: "${albumList?[index].username}",
+            description:
+                "${albumList?[index].firstName} ${albumList?[index].lastName}",
+            bottomWidgets: [
+              TextButton(
+                onPressed: () async {
+                  await database.createNews(
+                    NewsModel(
+                      id: albumList?[index].id,
+                      title: albumList?[index].username,
+                      image: "${albumList?[index].avatar}",
+                      description:
+                          "${albumList?[index].firstName} ${albumList?[index].lastName}",
                     ),
-                    TextButton(
-                      onPressed: () {
-                        // Navigator.of(context).push(
-                        //   MaterialPageRoute(
-                        //     builder: (context) => DetailPage(),
-                        //     settings: RouteSettings(
-                        //       arguments: {}
-                        //     )
-                        //   ),
-                        // );
-                        //--- passing data with constructor -----
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => const RecommendtaionPage(
-                              title: "Detail",
-                              description: "This is description",
-                            ),
+                  );
+                  await database.getItems();
+                },
+                child: const Text("Save"),
+              ),
+              TextButton(
+                onPressed: () {
+                  // Navigator.of(context).push(
+                  //   MaterialPageRoute(
+                  //     builder: (context) => DetailPage(),
+                  //     settings: RouteSettings(
+                  //       arguments: {}
+                  //     )
+                  //   ),
+                  // );
+                  //--- passing data with constructor -----
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const RecommendtaionPage(
+                        title: "Detail",
+                        description: "This is description",
+                      ),
+                    ),
+                  );
+                  // ---- named routed with arguments -----
+                  Navigator.of(context).pushNamed(
+                    "/detailPage",
+                    arguments: [
+                      "name",
+                      "info",
+                      "address",
+                    ],
+                  );
+                },
+                child: const Text("Next Page"),
+              ),
+              IconButton(
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return ListView(
+                        shrinkWrap: true,
+                        children: const [
+                          ListTile(
+                            title: Text("Email"),
+                            leading: Icon(Icons.email),
                           ),
-                        );
-                        // ---- named routed with arguments -----
-                        Navigator.of(context).pushNamed(
-                          "/detailPage",
-                          arguments: [
-                            "name",
-                            "info",
-                            "address",
-                          ],
-                        );
-                      },
-                      child: const Text("Next Page"),
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return ListView(
-                              shrinkWrap: true,
-                              children: const [
-                                ListTile(
-                                  title: Text("Email"),
-                                  leading: Icon(Icons.email),
-                                ),
-                                ListTile(
-                                  title: Text("Call"),
-                                  leading: Icon(Icons.phone),
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                      },
-                      icon: const Icon(Icons.share),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                          ListTile(
+                            title: Text("Call"),
+                            leading: Icon(Icons.phone),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+                icon: const Icon(Icons.share),
+              ),
+            ],
           );
         },
         separatorBuilder: (BuildContext context, int index) =>
             const SizedBox(height: 30),
+      ),
+    );
+  }
+}
+
+class CustomContainer extends StatelessWidget {
+  const CustomContainer({
+    super.key,
+    required this.imageNetwork,
+    required this.title,
+    required this.description,
+    this.bottomWidgets,
+  });
+
+  final String? imageNetwork, title, description;
+  final List<Widget>? bottomWidgets;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            offset: const Offset(0, 2),
+            blurRadius: 4,
+            spreadRadius: 7,
+            color: Colors.black.withOpacity(0.07),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 160,
+            width: double.infinity,
+            color: Colors.grey.shade200,
+            child: imageNetwork == null
+                ? const Text("Something went wrong")
+                : Image.network(
+                    "$imageNetwork",
+                    fit: BoxFit.cover,
+                  ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            "$title",
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "$description",
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (bottomWidgets != null)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: bottomWidgets ?? [],
+            ),
+        ],
       ),
     );
   }

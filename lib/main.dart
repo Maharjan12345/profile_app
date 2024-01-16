@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:profile_app/news_app/dashboard_paeg.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
