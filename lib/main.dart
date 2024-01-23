@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:profile_app/news_app/dashboard_paeg.dart';
+import 'package:get/get.dart';
+import 'package:profile_app/login/screen/login_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11,17 +12,18 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
+      locale: const Locale('en', 'US'),
       // routes: {
       //   "/detailPage": (context) => DetailPage(),
       // },
-      home: const DashboardScreen(),
+      home: const LoginPage(),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:profile_app/news_app/dashboard_paeg.dart';
+import 'package:get/get.dart';
+import 'package:profile_app/login/controller/login_controller.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -9,11 +10,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  bool isSignInLoading = false;
-
-  final _formKey = GlobalKey<FormState>();
+  final _loginController = Get.put(LoginController());
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +18,7 @@ class _LoginPageState extends State<LoginPage> {
 
     return Scaffold(
       body: Form(
-        key: _formKey,
+        key: _loginController.formKey,
         child: ListView(
           shrinkWrap: true,
           children: [
@@ -42,7 +39,7 @@ class _LoginPageState extends State<LoginPage> {
             const SizedBox(height: 50),
             CustomFormField(
               hintText: "Username",
-              controller: _usernameController,
+              controller: _loginController.usernameController,
               validator: (value) {
                 if (value!.isEmpty) {
                   return 'Username cannot be empty';
@@ -55,65 +52,39 @@ class _LoginPageState extends State<LoginPage> {
             const SizedBox(height: 20),
             CustomFormField(
               hintText: "Password",
-              controller: _passwordController,
+              controller: _loginController.passwordController,
               validator: (value) {
-                return validatePassword(value ?? '');
+                return _loginController.validatePassword(value ?? '');
               },
             ),
             const SizedBox(height: 90),
-            Padding(
-              padding: const EdgeInsets.all(18.0),
-              child: MaterialButton(
-                color: Colors.blue,
-                minWidth: double.infinity,
-                height: 60,
-                onPressed: isSignInLoading ? () {} : () => _signIn(context),
-                child: isSignInLoading
-                    ? const CircularProgressIndicator.adaptive()
-                    : Text(
-                        "Sign In".toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
+            Obx(
+              () => Padding(
+                padding: const EdgeInsets.all(18.0),
+                child: MaterialButton(
+                  color: Colors.blue,
+                  minWidth: double.infinity,
+                  height: 60,
+                  onPressed: _loginController.isSignInLoading.value
+                      ? () {}
+                      : () => _loginController.signIn(),
+                  child: _loginController.isSignInLoading.value
+                      ? const CircularProgressIndicator.adaptive()
+                      : Text(
+                          "Sign In".toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
                         ),
-                      ),
+                ),
               ),
             ),
           ],
         ),
       ),
     );
-  }
-
-  Future<void> _signIn(BuildContext context) async {
-    setState(() => isSignInLoading = true);
-    if (_formKey.currentState!.validate()) {
-      await Future.delayed(const Duration(seconds: 2));
-      setState(() => isSignInLoading = false);
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (context) => const DashboardScreen(),
-        ),
-        (route) => false,
-      );
-    } else {
-      setState(() => isSignInLoading = false);
-    }
-  }
-
-  String? validatePassword(String value) {
-    RegExp regex =
-        RegExp(r'^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[!@#\$&*~]).{8,}$');
-    if (value.isEmpty) {
-      return 'Please enter password';
-    } else {
-      if (!regex.hasMatch(value)) {
-        return 'Enter valid password';
-      } else {
-        return null;
-      }
-    }
   }
 }
 
